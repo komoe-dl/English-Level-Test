@@ -108,117 +108,6 @@ Status: Learning from Web App`;
     setUser(null);
   };
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-[#f5f5f0] flex items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-[32px] p-8 md:p-12 shadow-2xl w-full max-w-md border border-[#5A5A40]/10"
-        >
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 bg-[#5A5A40] rounded-2xl flex items-center justify-center text-white shadow-lg mb-4">
-              <Bot size={32} />
-            </div>
-            <h1 className="text-2xl font-bold text-[#5A5A40]">Mingalar ESL Coach</h1>
-            <p className="text-[#5A5A40] opacity-60 text-sm mt-1">
-              {authView === 'login' ? 'Welcome back!' : 'Create your account'}
-            </p>
-          </div>
-
-          <form 
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              const email = formData.get('email');
-              const password = formData.get('password');
-              const name = formData.get('name');
-
-              const endpoint = authView === 'login' ? '/api/login' : '/api/signup';
-              const body = authView === 'login' ? { email, password } : { email, password, name };
-
-              try {
-                const res = await fetch(endpoint, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(body)
-                });
-                const data = await res.json();
-                if (data.success) {
-                  localStorage.setItem('token', data.token);
-                  localStorage.setItem('user', JSON.stringify(data.user));
-                  setUser(data.user);
-                } else {
-                  alert(data.error || 'Authentication failed');
-                }
-              } catch (err) {
-                alert('Connection error');
-              }
-            }}
-            className="space-y-4"
-          >
-            {authView === 'signup' && (
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-[#5A5A40] uppercase tracking-widest ml-1">Full Name</label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5A5A40] opacity-40" size={18} />
-                  <input 
-                    name="name"
-                    type="text" 
-                    required 
-                    placeholder="John Doe"
-                    className="w-full pl-12 pr-4 py-4 bg-[#5A5A40]/5 border-2 border-transparent focus:border-[#5A5A40] focus:bg-white rounded-2xl outline-none transition-all font-sans"
-                  />
-                </div>
-              </div>
-            )}
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-[#5A5A40] uppercase tracking-widest ml-1">Email Address</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5A5A40] opacity-40" size={18} />
-                <input 
-                  name="email"
-                  type="email" 
-                  required 
-                  placeholder="name@example.com"
-                  className="w-full pl-12 pr-4 py-4 bg-[#5A5A40]/5 border-2 border-transparent focus:border-[#5A5A40] focus:bg-white rounded-2xl outline-none transition-all font-sans"
-                />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-[#5A5A40] uppercase tracking-widest ml-1">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5A5A40] opacity-40" size={18} />
-                <input 
-                  name="password"
-                  type="password" 
-                  required 
-                  placeholder="••••••••"
-                  className="w-full pl-12 pr-4 py-4 bg-[#5A5A40]/5 border-2 border-transparent focus:border-[#5A5A40] focus:bg-white rounded-2xl outline-none transition-all font-sans"
-                />
-              </div>
-            </div>
-            <button 
-              type="submit"
-              className="w-full bg-[#5A5A40] text-white py-4 rounded-full font-sans font-bold shadow-lg hover:bg-[#4a4a34] transition-all mt-4"
-            >
-              {authView === 'login' ? 'Sign In' : 'Create Account'}
-            </button>
-          </form>
-
-          <div className="mt-8 text-center">
-            <button 
-              onClick={() => setAuthView(authView === 'login' ? 'signup' : 'login')}
-              className="text-sm font-sans font-bold text-[#5A5A40] opacity-60 hover:opacity-100 transition-opacity"
-            >
-              {authView === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
-            </button>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
   const fetchChatHistory = async () => {
     try {
       const res = await fetch('/api/chat');
@@ -367,6 +256,117 @@ Status: Learning from Web App`;
       delete (window as any).showGlobalPurpose;
     };
   }, []);
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#f5f5f0] flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-[32px] p-8 md:p-12 shadow-2xl w-full max-w-md border border-[#5A5A40]/10"
+        >
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-16 h-16 bg-[#5A5A40] rounded-2xl flex items-center justify-center text-white shadow-lg mb-4">
+              <Bot size={32} />
+            </div>
+            <h1 className="text-2xl font-bold text-[#5A5A40]">Mingalar ESL Coach</h1>
+            <p className="text-[#5A5A40] opacity-60 text-sm mt-1">
+              {authView === 'login' ? 'Welcome back!' : 'Create your account'}
+            </p>
+          </div>
+
+          <form 
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const email = formData.get('email');
+              const password = formData.get('password');
+              const name = formData.get('name');
+
+              const endpoint = authView === 'login' ? '/api/login' : '/api/signup';
+              const body = authView === 'login' ? { email, password } : { email, password, name };
+
+              try {
+                const res = await fetch(endpoint, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (data.success) {
+                  localStorage.setItem('token', data.token);
+                  localStorage.setItem('user', JSON.stringify(data.user));
+                  setUser(data.user);
+                } else {
+                  alert(data.error || 'Authentication failed');
+                }
+              } catch (err) {
+                alert('Connection error');
+              }
+            }}
+            className="space-y-4"
+          >
+            {authView === 'signup' && (
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-[#5A5A40] uppercase tracking-widest ml-1">Full Name</label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5A5A40] opacity-40" size={18} />
+                  <input 
+                    name="name"
+                    type="text" 
+                    required 
+                    placeholder="John Doe"
+                    className="w-full pl-12 pr-4 py-4 bg-[#5A5A40]/5 border-2 border-transparent focus:border-[#5A5A40] focus:bg-white rounded-2xl outline-none transition-all font-sans"
+                  />
+                </div>
+              </div>
+            )}
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-[#5A5A40] uppercase tracking-widest ml-1">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5A5A40] opacity-40" size={18} />
+                <input 
+                  name="email"
+                  type="email" 
+                  required 
+                  placeholder="name@example.com"
+                  className="w-full pl-12 pr-4 py-4 bg-[#5A5A40]/5 border-2 border-transparent focus:border-[#5A5A40] focus:bg-white rounded-2xl outline-none transition-all font-sans"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-[#5A5A40] uppercase tracking-widest ml-1">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5A5A40] opacity-40" size={18} />
+                <input 
+                  name="password"
+                  type="password" 
+                  required 
+                  placeholder="••••••••"
+                  className="w-full pl-12 pr-4 py-4 bg-[#5A5A40]/5 border-2 border-transparent focus:border-[#5A5A40] focus:bg-white rounded-2xl outline-none transition-all font-sans"
+                />
+              </div>
+            </div>
+            <button 
+              type="submit"
+              className="w-full bg-[#5A5A40] text-white py-4 rounded-full font-sans font-bold shadow-lg hover:bg-[#4a4a34] transition-all mt-4"
+            >
+              {authView === 'login' ? 'Sign In' : 'Create Account'}
+            </button>
+          </form>
+
+          <div className="mt-8 text-center">
+            <button 
+              onClick={() => setAuthView(authView === 'login' ? 'signup' : 'login')}
+              className="text-sm font-sans font-bold text-[#5A5A40] opacity-60 hover:opacity-100 transition-opacity"
+            >
+              {authView === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

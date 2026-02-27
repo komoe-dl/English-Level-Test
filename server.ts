@@ -111,6 +111,9 @@ async function startServer() {
       res.json({ success: true, token, user: { email, name } });
     } catch (err: any) {
       console.error("Signup error:", err);
+      if (err.message?.includes("UNIQUE constraint failed")) {
+        return res.status(400).json({ error: "An account with this email already exists." });
+      }
       res.status(500).json({ error: err.message });
     }
   });
