@@ -31,7 +31,10 @@ import {
   Share2,
   Link,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Mail,
+  Lock,
+  LogOut
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -41,6 +44,8 @@ import { Language, translations } from './translations';
 import { quizQuestions, calculateLevel, QuizQuestion } from './quizData';
 
 export default function App() {
+  const [user, setUser] = useState<{ email: string, name: string } | null>(null);
+  const [authView, setAuthView] = useState<'login' | 'signup'>('login');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [initialEditStep, setInitialEditStep] = useState<number | undefined>(undefined);
@@ -78,11 +83,6 @@ Status: Learning from Web App`;
   const toggleLang = () => setLang(l => l === 'en' ? 'my' : 'en');
 
   useEffect(() => {
-    fetchProfile();
-    fetchChatHistory();
-  }, []);
-
-  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
@@ -101,6 +101,123 @@ Status: Learning from Web App`;
       setLoading(false);
     }
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    setUser(null);
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#f5f5f0] flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-[32px] p-8 md:p-12 shadow-2xl w-full max-w-md border border-[#5A5A40]/10"
+        >
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-16 h-16 bg-[#5A5A40] rounded-2xl flex items-center justify-center text-white shadow-lg mb-4">
+              <Bot size={32} />
+            </div>
+            <h1 className="text-2xl font-bold text-[#5A5A40]">Mingalar ESL Coach</h1>
+            <p className="text-[#5A5A40] opacity-60 text-sm mt-1">
+              {authView === 'login' ? 'Welcome back!' : 'Create your account'}
+            </p>
+          </div>
+
+          <form 
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const email = formData.get('email');
+              const password = formData.get('password');
+              const name = formData.get('name');
+
+              const endpoint = authView === 'login' ? '/api/login' : '/api/signup';
+              const body = authView === 'login' ? { email, password } : { email, password, name };
+
+              try {
+                const res = await fetch(endpoint, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (data.success) {
+                  localStorage.setItem('token', data.token);
+                  localStorage.setItem('user', JSON.stringify(data.user));
+                  setUser(data.user);
+                } else {
+                  alert(data.error || 'Authentication failed');
+                }
+              } catch (err) {
+                alert('Connection error');
+              }
+            }}
+            className="space-y-4"
+          >
+            {authView === 'signup' && (
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-[#5A5A40] uppercase tracking-widest ml-1">Full Name</label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5A5A40] opacity-40" size={18} />
+                  <input 
+                    name="name"
+                    type="text" 
+                    required 
+                    placeholder="John Doe"
+                    className="w-full pl-12 pr-4 py-4 bg-[#5A5A40]/5 border-2 border-transparent focus:border-[#5A5A40] focus:bg-white rounded-2xl outline-none transition-all font-sans"
+                  />
+                </div>
+              </div>
+            )}
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-[#5A5A40] uppercase tracking-widest ml-1">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5A5A40] opacity-40" size={18} />
+                <input 
+                  name="email"
+                  type="email" 
+                  required 
+                  placeholder="name@example.com"
+                  className="w-full pl-12 pr-4 py-4 bg-[#5A5A40]/5 border-2 border-transparent focus:border-[#5A5A40] focus:bg-white rounded-2xl outline-none transition-all font-sans"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-[#5A5A40] uppercase tracking-widest ml-1">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5A5A40] opacity-40" size={18} />
+                <input 
+                  name="password"
+                  type="password" 
+                  required 
+                  placeholder="••••••••"
+                  className="w-full pl-12 pr-4 py-4 bg-[#5A5A40]/5 border-2 border-transparent focus:border-[#5A5A40] focus:bg-white rounded-2xl outline-none transition-all font-sans"
+                />
+              </div>
+            </div>
+            <button 
+              type="submit"
+              className="w-full bg-[#5A5A40] text-white py-4 rounded-full font-sans font-bold shadow-lg hover:bg-[#4a4a34] transition-all mt-4"
+            >
+              {authView === 'login' ? 'Sign In' : 'Create Account'}
+            </button>
+          </form>
+
+          <div className="mt-8 text-center">
+            <button 
+              onClick={() => setAuthView(authView === 'login' ? 'signup' : 'login')}
+              className="text-sm font-sans font-bold text-[#5A5A40] opacity-60 hover:opacity-100 transition-opacity"
+            >
+              {authView === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   const fetchChatHistory = async () => {
     try {
@@ -151,6 +268,15 @@ Status: Learning from Web App`;
       body: JSON.stringify({ role, text })
     });
   };
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+    fetchProfile();
+    fetchChatHistory();
+  }, []);
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -286,9 +412,15 @@ Status: Learning from Web App`;
                 </button>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 md:w-8 md:h-8 bg-[#5A5A40] rounded-lg flex items-center justify-center text-white shadow-sm flex-none">
+                    <a 
+                      href="https://gemini.google.com/gem/1Rj6lnR1zxTVTo5lD3faANn3F6zinnvqL?usp=sharing"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-6 h-6 md:w-8 md:h-8 bg-[#5A5A40] rounded-lg flex items-center justify-center text-white shadow-sm flex-none hover:scale-110 transition-transform"
+                      title="Open Gemini Gem"
+                    >
                       <Bot size={16} className="md:size-5" />
-                    </div>
+                    </a>
                     <h1 className="text-lg md:text-2xl font-bold tracking-tight truncate leading-tight">{t.appName}</h1>
                   </div>
                   <p className="text-[9px] md:text-sm text-[#5A5A40] font-sans uppercase tracking-widest font-semibold opacity-70 truncate">
@@ -301,6 +433,13 @@ Status: Learning from Web App`;
                 </div>
               </div>
               <div className="flex items-center gap-0.5 md:gap-2 flex-none">
+                <button 
+                  onClick={handleLogout}
+                  className="h-7 md:h-9 w-7 md:w-9 flex items-center justify-center hover:bg-white rounded-full transition-colors text-[#5A5A40] opacity-60 hover:opacity-100"
+                  title="Logout"
+                >
+                  <LogOut size={16} className="md:size-[18px]" />
+                </button>
                 <button 
                   onClick={toggleLang}
                   className="h-7 md:h-9 px-1.5 md:px-3 bg-[#5A5A40]/10 hover:bg-[#5A5A40]/20 rounded-full transition-colors text-[#5A5A40] font-sans font-bold text-[9px] md:text-xs flex items-center gap-1"
@@ -1540,7 +1679,7 @@ function AssessmentForm({ onSubmit, initialData, onCancel, onReset, lang, toggle
                             {t.reviewAnswers}
                           </button>
                           <button 
-                            onClick={restartQuiz}
+                            onClick={() => { restartQuiz(); setShowQuiz(false); }}
                             className="w-full text-[#5A5A40] opacity-60 hover:opacity-100 transition-opacity font-sans text-sm"
                           >
                             {t.retakeQuiz}
@@ -2188,35 +2327,42 @@ function AssessmentForm({ onSubmit, initialData, onCancel, onReset, lang, toggle
         transition={{ delay: 1, duration: 0.5 }}
         className="fixed bottom-6 right-6 z-[100] no-print"
       >
-        <motion.div
-          animate={{ 
-            y: [0, -10, 0],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="relative group cursor-pointer"
+        <a 
+          href="https://gemini.google.com/gem/1Rj6lnR1zxTVTo5lD3faANn3F6zinnvqL?usp=sharing"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block"
         >
-          {/* Glow Effect */}
-          <div className="absolute inset-0 bg-[#5A5A40]/20 blur-2xl rounded-full scale-150 animate-pulse" />
-          
-          {/* Button Container */}
-          <div className="w-14 h-14 md:w-16 md:h-16 bg-[#5A5A40] rounded-full shadow-[0_10px_30px_rgba(90,90,64,0.3)] flex items-center justify-center border-4 border-white relative overflow-hidden group-hover:scale-110 transition-transform duration-300">
-            <Bot size={28} className="text-white drop-shadow-md" />
+          <motion.div
+            animate={{ 
+              y: [0, -10, 0],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="relative group cursor-pointer"
+          >
+            {/* Glow Effect */}
+            <div className="absolute inset-0 bg-[#5A5A40]/20 blur-2xl rounded-full scale-150 animate-pulse" />
             
-            {/* Small Sparkle */}
-            <div className="absolute top-2 right-2">
-              <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-60" />
+            {/* Button Container */}
+            <div className="w-14 h-14 md:w-16 md:h-16 bg-[#5A5A40] rounded-full shadow-[0_10px_30px_rgba(90,90,64,0.3)] flex items-center justify-center border-4 border-white relative overflow-hidden group-hover:scale-110 transition-transform duration-300">
+              <Bot size={28} className="text-white drop-shadow-md" />
+              
+              {/* Small Sparkle */}
+              <div className="absolute top-2 right-2">
+                <div className="w-1.5 h-1.5 bg-white rounded-full animate-ping opacity-60" />
+              </div>
             </div>
-          </div>
 
-          {/* Tooltip/Label */}
-          <div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white text-[#5A5A40] text-xs font-bold px-3 py-1.5 rounded-xl shadow-xl border border-[#5A5A40]/10 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            AI Learning Assistant
-          </div>
-        </motion.div>
+            {/* Tooltip/Label */}
+            <div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white text-[#5A5A40] text-xs font-bold px-3 py-1.5 rounded-xl shadow-xl border border-[#5A5A40]/10 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              AI Learning Assistant
+            </div>
+          </motion.div>
+        </a>
       </motion.div>
     </div>
   );

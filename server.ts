@@ -5,11 +5,46 @@ import Database from "better-sqlite3";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const DB_PATH = "esl_coach.db";
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
+
+// Cloudflare D1 Helper
+async function queryD1(sql: string, params: any[] = []) {
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID;
+  const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+
+  if (!accountId || !databaseId || !apiToken) {
+    throw new Error("Cloudflare D1 configuration missing");
+  }
+
+  const response = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiToken}`,
+      },
+      body: JSON.stringify({
+        sql,
+        params,
+      }),
+    }
+  );
+
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error(data.errors?.[0]?.message || "D1 query failed");
+  }
+  return data.result[0];
+}
 
 let db: Database.Database;
 
@@ -60,6 +95,49 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
+
+  // Auth Routes
+  app.post("/api/signup", async (req, res) => {
+    try {
+      const { email, password, name } = req.body;
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      await queryD1(
+        "INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)",
+        [email, passwordHash, name]
+      );
+
+      const token = jwt.sign({ email, name }, JWT_SECRET, { expiresIn: "24h" });
+      res.json({ success: true, token, user: { email, name } });
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      const result = await queryD1("SELECT * FROM users WHERE email = ?", [email]);
+      
+      if (!result.results || result.results.length === 0) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      const user = result.results[0];
+      const isValid = await bcrypt.compare(password, user.password_hash);
+
+      if (!isValid) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      const token = jwt.sign({ email: user.email, name: user.name }, JWT_SECRET, { expiresIn: "24h" });
+      res.json({ success: true, token, user: { email: user.email, name: user.name } });
+    } catch (err: any) {
+      console.error("Login error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   // API Routes
   app.get("/api/profile", (req, res) => {
